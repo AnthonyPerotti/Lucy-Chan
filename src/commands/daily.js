@@ -9,6 +9,7 @@ module.exports = {
   async execute(interaction) {
     const id = interaction.user.id;
     const now = Date.now();
+    const cooldown = 86400000; // 24 horas em milissegundos
     const reward = Math.floor(Math.random() * 500) + 500;
 
     db.get("SELECT * FROM users WHERE user_id = ?", [id], (err, user) => {
@@ -25,7 +26,7 @@ module.exports = {
           () => {
             const embed = new EmbedBuilder()
               .setTitle("💰 **Recompensa Diária Resgatada!**")
-              .setColor("#FFD700")  // Cor dourada
+              .setColor("#FFD700")
               .setDescription(`Você recebeu **R$ ${reward}** como recompensa diária!`)
               .setFooter({ text: `Requisitado por ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
               .setTimestamp();
@@ -34,19 +35,28 @@ module.exports = {
           }
         );
       } else {
-        // Verifica se já foi resgatado hoje
-        if (now - user.last_daily < 86400000) {
-          return interaction.reply("⏳ Você já resgatou hoje.");
+        // Verifica o tempo desde o último daily
+        const timeSinceLast = now - user.last_daily;
+
+        if (timeSinceLast < cooldown) {
+          const remaining = cooldown - timeSinceLast;
+          
+          // Cálculo de horas, minutos e segundos restantes
+          const hours = Math.floor(remaining / (1000 * 60 * 60));
+          const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+          const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+
+          return interaction.reply(`⏳ Você já coletou sua recompensa diária, pode voltar e coletá-la em ${hours}h ${minutes}m ${seconds}s!`);
         }
 
-        // Atualiza o saldo e a data do resgate
+        // Atualiza o saldo e a data do resgate para AGORA
         db.run(
           "UPDATE users SET money = money + ?, last_daily = ? WHERE user_id = ?",
           [reward, now, id],
           () => {
             const embed = new EmbedBuilder()
               .setTitle("💰 **Recompensa Diária Resgatada!**")
-              .setColor("#FFD700")  // Cor dourada
+              .setColor("#FFD700")
               .setDescription(`Você recebeu **R$ ${reward}** como recompensa diária!`)
               .setFooter({ text: `Requisitado por ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
               .setTimestamp();

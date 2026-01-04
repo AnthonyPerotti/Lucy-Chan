@@ -19,31 +19,38 @@ module.exports = {
         const topLimit = 10;
         let userPosition = null;
 
-        // Criando o Embed
         const embed = new EmbedBuilder()
-          .setTitle("🏆 **TOP MONEY**")
-          .setColor("#FFD700");  // Cor dourada
+          .setTitle("🏆 **Top Money**")
+          .setColor("#FFD700")  // Dourado
+          // Ícone de saco de dinheiro ou troféu
+          .setThumbnail("https://cdn-icons-png.flaticon.com/512/2953/2953363.png");
 
-        // Adicionando os jogadores do top 10
         for (let i = 0; i < rows.length; i++) {
           if (i >= topLimit) break;
 
-          const user = await interaction.client.users.fetch(rows[i].user_id);
-          const medal = medals[i] || "🎖️";
+          let username = "Desconhecido";
+          try {
+            const user = await interaction.client.users.fetch(rows[i].user_id);
+            username = user.username;
+          } catch (e) {
+             username = `[Conta Deletada] (${rows[i].user_id})`;
+          }
 
+          const rankIcon = medals[i] || `**${i + 1}.**`;
+          const formattedMoney = rows[i].money.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+
+          // Formatação estilo "ficha"
           embed.addFields({
-            name: `${medal} **${i + 1}. ${user.username}**`,
-            value: `💸 Dinheiro: **R$ ${rows[i].money.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}**`,
+            name: `${rankIcon} ${username}`,
+            value: `💸 Dinheiro - R$ ${formattedMoney}`,
             inline: false
           });
 
-          // Verifica a posição do usuário que executou o comando
           if (rows[i].user_id === interaction.user.id) {
             userPosition = i + 1;
           }
         }
 
-        // Adiciona a posição do usuário de forma discreta no final
         embed.setFooter({
           text: userPosition
             ? `Sua posição: ${userPosition}`
@@ -51,7 +58,6 @@ module.exports = {
           iconURL: interaction.user.displayAvatarURL()
         });
         
-        // Enviar o Embed com o ranking para o usuário
         interaction.reply({ embeds: [embed] });
       }
     );

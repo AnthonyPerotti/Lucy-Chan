@@ -16,34 +16,43 @@ module.exports = {
         }
 
         const medals = ["🥇", "🥈", "🥉"];
-        const topLimit = 10; // Mostra o top 10
+        const topLimit = 10;
         let userPosition = null;
 
-        // Criando o Embed para o ranking
         const embed = new EmbedBuilder()
           .setTitle("🏆 **Top Rep's**")
-          .setColor("#FFD700"); // Cor dourada, pode ser alterada conforme necessário
+          // Cor azulada parecida com a da imagem (Blurple do Discord)
+          .setColor("#5865F2") 
+          // Adiciona a imagem de medalha no canto direito
+          .setThumbnail("https://cdn-icons-png.flaticon.com/512/2583/2583344.png"); 
 
-        // Adicionando os usuários do top 10 ao embed
         for (let i = 0; i < rows.length; i++) {
           if (i >= topLimit) break;
 
-          const user = await interaction.client.users.fetch(rows[i].user_id);
-          const medal = medals[i] || "🎖️";
+          // Tenta pegar o usuário, se sair do servidor mostra "Desconhecido"
+          let username = "Desconhecido";
+          try {
+            const user = await interaction.client.users.fetch(rows[i].user_id);
+            username = user.username;
+          } catch (e) {
+            username = `[Conta Deletada] (${rows[i].user_id})`;
+          }
 
+          // Mantendo sua lógica de medalhas para os 3 primeiros
+          const rankIcon = medals[i] || `**${i + 1}.**`;
+          
+          // Formatação igual à da foto: Nome em cima, Valor em baixo entre colchetes
           embed.addFields({
-            name: `${medal} **${i + 1}. ${user.username}**`,
-            value: `🏷️ Reputação: **${rows[i].rep}**`,
+            name: `${rankIcon} ${username}`,
+            value: `🏷️ Reputação - [ ${rows[i].rep} ]`,
             inline: false
           });
 
-          // Verifica a posição do usuário que executou o comando
           if (rows[i].user_id === interaction.user.id) {
             userPosition = i + 1;
           }
         }
 
-        // Adiciona a posição do usuário de forma discreta no final do embed
         embed.setFooter({
           text: userPosition
             ? `Sua posição: ${userPosition}`
@@ -51,7 +60,6 @@ module.exports = {
           iconURL: interaction.user.displayAvatarURL()
         });
 
-        // Envia o Embed com o ranking para o usuário
         interaction.reply({ embeds: [embed] });
       }
     );
