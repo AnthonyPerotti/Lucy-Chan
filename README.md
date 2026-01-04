@@ -1,13 +1,39 @@
-# Lucy-chan - Discord Bot
+# Lucy-chan - Discord Economy RPG Bot
 
-**Lucy-chan** é um bot interativo para **Discord**, focado em gamificação e interações divertidas. Ele permite aos usuários ganhar dinheiro, comprar itens em uma loja, visualizar seu perfil e muito mais.
+**Lucy-chan** é um bot de economia e RPG completo para **Discord**, desenvolvido em **Node.js**. O foco do projeto é gamificação, progressão de carreira e interação entre usuários através de um sistema financeiro robusto.
 
-## Funcionalidades
+## 🚀 Funcionalidades Principais
 
-- **Recompensa Diária**: Os usuários podem resgatar uma recompensa diária em dinheiro.
-- **Loja de Itens**: Itens como **Vassoura**, **Machado**, **Computador**, entre outros, podem ser comprados usando o dinheiro acumulado.
-- **Perfil do Usuário**: Exibe informações como nível, XP, dinheiro e reputação.
-- **Ranking de Dinheiro e Reputação**: Mostra os usuários com mais dinheiro ou maior reputação no servidor.
+### 💸 Sistema Econômico & Bancário
+Os usuários possuem uma **Carteira** (dinheiro em mãos) e uma **Conta Bancária** (dinheiro seguro).
+- **Gerenciamento:** Comandos `/deposit`, `/withdraw` e `/balance`.
+- **Transferências:** Envio de dinheiro entre usuários com `/pay`.
+- **Risco (PvP):** Jogadores podem comprar uma **Pistola** e tentar `/assaltar` a carteira de outros usuários. O dinheiro no banco não pode ser roubado.
+
+### ⚒️ Sistema de Trabalhos e Profissões
+A economia gira em torno da compra de ferramentas para realizar trabalhos específicos. Cada trabalho possui **Cooldowns**, **Chances de Falha** e **Variação de XP/Dinheiro**.
+
+| Ferramenta | Trabalho | Categoria |
+| :--- | :--- | :--- |
+| 🧹 Vassoura | `/varrer` | Básico |
+| 🧽 Esponja | `/limpar` | Básico |
+| 🎣 Vara | `/pescar` | Pescador |
+| 🕸️ Rede | `/arrastar` | Pescador |
+| ⛏️ Pá | `/cavar` | Trabalhador |
+| 🔪 Faca | `/cozinhar` | Trabalhador |
+| 🚜 Enxada | `/arar` | Fazendeiro |
+| 🪓 Machado | `/cortar` | Lenhador |
+| ⛏️ Picareta | `/minerar` | Minerador |
+| 🔨 Martelo | `/construir` | Construtor |
+| 🔫 Pistola | `/roubar` | Crime (NPCs) |
+| 💻 Computador| `/hackear` | Crime (Cyber) |
+
+### 🏆 Progressão e Competitividade
+- **Níveis Automáticos:** Ganhar XP nos trabalhos faz o usuário subir de nível automaticamente.
+- **Rankings Globais:**
+  - `/moneytop`: Os usuários mais ricos do servidor.
+  - `/reptop`: Os usuários com maior reputação social.
+- **Social:** Sistema de reputação (`/rep`) e perfil personalizável (`/profile`).
 
 ## Personalização
 
