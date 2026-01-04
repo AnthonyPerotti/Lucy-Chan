@@ -1,0 +1,11 @@
+version: "3.9"
+
+services:
+  discord-bot:
+    container_name: discord-bot
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - /home/perotti/discord-bot-data:/app/data
