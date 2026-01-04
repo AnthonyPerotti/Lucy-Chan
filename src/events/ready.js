@@ -6,7 +6,7 @@ module.exports = async client => {
   console.log(`🤖 Bot online como ${client.user.tag}`);
 
   const commands = [];
-  // Lê apenas arquivos que terminam com .js para evitar erros com pastas ou outros arquivos
+  // Lê apenas arquivos que terminam com .js
   const files = fs.readdirSync("./src/commands").filter(file => file.endsWith(".js"));
 
   for (const file of files) {
@@ -15,8 +15,6 @@ module.exports = async client => {
       // Verifica se o comando tem a estrutura correta antes de adicionar
       if (command.data && command.data.toJSON) {
         commands.push(command.data.toJSON());
-      } else {
-        console.warn(`⚠️ O comando ${file} não tem a propriedade "data" ou "execute".`);
       }
     } catch (error) {
       console.error(`❌ Erro ao carregar o comando ${file}:`, error);
@@ -25,19 +23,17 @@ module.exports = async client => {
 
   const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
 
-  // ID do seu servidor (Guild ID)
-  const GUILD_ID = "835589869224329247"; 
-
   try {
-    console.log("⏳ Iniciando atualização dos comandos (/) no servidor...");
+    console.log("⏳ Iniciando atualização dos comandos (Global)...");
 
-    // Usa applicationGuildCommands em vez de applicationCommands para ser instantâneo
+    // USANDO applicationCommands (Sem Guild ID) = Registro Global
     await rest.put(
-      Routes.applicationGuildCommands(process.env.CLIENT_ID, GUILD_ID),
+      Routes.applicationCommands(process.env.CLIENT_ID),
       { body: commands }
     );
 
-    console.log("✅ Comandos registrados com sucesso no servidor!");
+    console.log("✅ Comandos registrados globalmente com sucesso!");
+    console.log("ℹ️ Nota: Comandos globais podem levar até 1 hora para aparecer em todos os servidores.");
   } catch (error) {
     console.error("❌ Erro ao registrar comandos:", error);
   }
