@@ -5,7 +5,9 @@ require("./database/db"); // Garante que o banco seja iniciado
 
 const client = new Client({
   intents: [
-    GatewayIntentBits.Guilds // Só precisamos disso para Slash Commands
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent
   ]
 });
 
@@ -18,6 +20,7 @@ const commandFiles = fs
 
 for (const file of commandFiles) {
   const command = require(`./commands/${file}`);
+
   if (command.data && command.execute) {
     client.commands.set(command.data.name, command);
   }
@@ -26,7 +29,6 @@ for (const file of commandFiles) {
 client.once("clientReady", require("./events/ready"));
 
 client.on("interactionCreate", async interaction => {
-  // Ignora se não for comando de chat (Slash)
   if (!interaction.isChatInputCommand()) return;
 
   const command = client.commands.get(interaction.commandName);
@@ -36,10 +38,34 @@ client.on("interactionCreate", async interaction => {
     await command.execute(interaction);
   } catch (err) {
     console.error(err);
-    // Evita erro se a interação já foi respondida
+
     if (!interaction.replied && !interaction.deferred) {
-      interaction.reply({ content: "❌ Erro ao executar comando.", ephemeral: true });
+      interaction.reply({
+        content: "❌ Erro ao executar comando.",
+        ephemeral: true
+      });
     }
+  }
+});
+
+const PREFIX = "lu!";
+
+client.on("messageCreate", async message => {
+  if (message.author.bot) return;
+  if (!message.content.startsWith(PREFIX)) return;
+
+  const args = message.content.slice(PREFIX.length).trim().split(/ +/);
+  const commandName = args.shift().toLowerCase();
+
+  const command = client.commands.get(commandName);
+
+  if (!command) return;
+
+  try {
+    await command.execute(message, args);
+  } catch (err) {
+    console.error(err);
+    message.reply("❌ Erro ao executar comando.");
   }
 });
 

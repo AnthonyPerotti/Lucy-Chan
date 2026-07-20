@@ -18,50 +18,107 @@ module.exports = {
     ),
 
   async execute(interaction) {
-    const senderId = interaction.user.id;
-    const targetUser = interaction.options.getUser("usuario");
+    return this.run(interaction, true);
+  },
+
+  async executeMessage(message, args) {
+    const targetUser =
+      message.mentions.users.first() ||
+      await message.client.users.fetch(args[0]).catch(() => null);
+
+    const amount = parseInt(args[1]);
+
+    if (!targetUser || isNaN(amount)) {
+      return message.reply(
+        "❌ Uso correto: `lu!pay @usuario 1000`"
+      );
+    }
+
+    return this.run(message, false, targetUser, amount);
+  },
+
+  async run(ctx, isSlash, targetUserArg = null, amountArg = null) {
+    const senderId = isSlash ? ctx.user.id : ctx.author.id;
+
+    const targetUser = isSlash
+      ? ctx.options.getUser("usuario")
+      : targetUserArg;
+
     const targetId = targetUser.id;
-    const amount = interaction.options.getInteger("valor");
+
+    const amount = isSlash
+      ? ctx.options.getInteger("valor")
+      : amountArg;
 
     // Validações básicas
     if (senderId === targetId) {
-      return interaction.reply("❌ Você não pode enviar dinheiro para si mesmo.");
+      return ctx.reply("❌ Você não pode enviar dinheiro para si mesmo.");
     }
 
     if (targetUser.bot) {
-      return interaction.reply("🤖 Bots não precisam de dinheiro!");
+      return ctx.reply("🤖 Bots não precisam de dinheiro!");
     }
 
-    // Verifica o saldo do remetente
-    db.get("SELECT money FROM users WHERE user_id = ?", [senderId], (err, sender) => {
-      if (err) return interaction.reply("❌ Erro ao verificar saldo.");
-
-      if (!sender || sender.money < amount) {
-        return interaction.reply("💸 Você não tem dinheiro suficiente na carteira para essa transferência.");
-      }
-
-      // Verifica se o destinatário existe no banco (se não, cria)
-      db.get("SELECT * FROM users WHERE user_id = ?", [targetId], (err, receiver) => {
-        if (!receiver) {
-          db.run("INSERT INTO users (user_id) VALUES (?)", [targetId]);
+    // Verifica saldo
+    db.get(
+      "SELECT money FROM users WHERE user_id = ?",
+      [senderId],
+      (err, sender) => {
+        if (err) {
+          console.error(err);
+          return ctx.reply("❌ Erro ao verificar saldo.");
         }
 
-        // Realiza a transferência (Tira de um, dá para o outro)
-        db.serialize(() => {
-          db.run("UPDATE users SET money = money - ? WHERE user_id = ?", [amount, senderId]);
-          db.run("UPDATE users SET money = money + ? WHERE user_id = ?", [amount, targetId]);
-        });
+        if (!sender || sender.money < amount) {
+          return ctx.reply(
+            "💸 Você não tem dinheiro suficiente na carteira para essa transferência."
+          );
+        }
 
-        // Confirmação visual
-        const embed = new EmbedBuilder()
-          .setTitle("💸 Transferência Realizada")
-          .setColor("#00FF00")
-          .setDescription(`Você enviou **R$ ${amount}** para **${targetUser.username}**!`)
-          .setFooter({ text: `Remetente: ${interaction.user.username}`, iconURL: interaction.user.displayAvatarURL() })
-          .setTimestamp();
+        // Verifica destinatário
+        db.get(
+          "SELECT * FROM users WHERE user_id = ?",
+          [targetId],
+          (err, receiver) => {
 
-        interaction.reply({ embeds: [embed] });
-      });
-    });
-  }
+            if (!receiver) {
+              db.run(
+                "INSERT INTO users (user_id, money, bank) VALUES (?, 0, 0)",
+                [targetId]
+              );
+            }
+
+            // Transferência
+            db.serialize(() => {
+              db.run(
+                "UPDATE users SET money = money - ? WHERE user_id = ?",
+                [amount, senderId]
+              );
+
+              db.run(
+                "UPDATE users SET money = money + ? WHERE user_id = ?",
+                [amount, targetId]
+              );
+            });
+
+            const embed = new EmbedBuilder()
+              .setTitle("💸 Transferência Realizada")
+              .setColor("#00FF00")
+              .setDescription(
+                `Você enviou **R$ ${amount}** para **${targetUser.username}**!`
+              )
+              .setFooter({
+                text: `Remetente: ${isSlash ? ctx.user.username : ctx.author.username}`,
+                iconURL: isSlash
+                  ? ctx.user.displayAvatarURL()
+                  : ctx.author.displayAvatarURL(),
+              })
+              .setTimestamp();
+
+            ctx.reply({ embeds: [embed] });
+          }
+        );
+      }
+    );
+  },
 };

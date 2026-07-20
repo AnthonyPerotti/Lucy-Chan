@@ -1,91 +1,163 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const db = require("../database/db");
 const jobs = require("../data/jobs");
+const levelSystem = require("../utils/levelSystem");
 
-// MUDE APENAS ISSO PARA OS OUTROS ARQUIVOS
 const jobType = "arrastar";
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName(jobType)
-    .setDescription(`Usar seu item para ${jobType}`),
+    .setDescription(`Executar trabalho de ${jobType}`),
 
-  async execute(interaction) {
-    const id = interaction.user.id;
+  async execute(ctx, args = []) {
+    const isSlash = !!ctx.isChatInputCommand;
+
+    const user = isSlash ? ctx.user : ctx.author;
+
+    const reply = (content) => {
+      if (isSlash) {
+        return ctx.reply(content);
+      } else {
+        return ctx.channel.send(content);
+      }
+    };
+
+    const id = user.id;
     const job = jobs[jobType];
     const now = Date.now();
 
-    // 1. Verifica se o usuário tem o item necessário
+    // 1. Verifica inventário
     db.get(
       "SELECT * FROM inventory WHERE user_id = ? AND item = ?",
       [id, job.itemName],
       (err, item) => {
-        if (err) return interaction.reply("❌ Erro ao verificar inventário.");
-        
+        if (err) return reply("❌ Erro no banco de dados.");
+
         if (!item) {
-          return interaction.reply(`❌ Você precisa comprar uma **${job.itemName}** na loja para usar este comando!`);
+          return reply(`❌ Você precisa de uma **${job.itemName}** para isso!`);
         }
 
-        // 2. Verifica o Cooldown (Tempo de espera) do usuário
-        db.get(`SELECT last_${jobType} FROM users WHERE user_id = ?`, [id], (err, user) => {
-          if (err || !user) return interaction.reply("❌ Erro ao acessar perfil.");
+        // 2. Verifica cooldown
+        db.get(
+          `SELECT last_${jobType} FROM users WHERE user_id = ?`,
+          [id],
+          (err, userData) => {
+            if (!userData) {
+              return reply("❌ Usuário não encontrado.");
+            }
 
-          const lastUsed = user[`last_${jobType}`];
-          const timeSinceLast = now - lastUsed;
+            const lastUsed = userData[`last_${jobType}`] || 0;
+            const timeSinceLast = now - lastUsed;
 
-          if (timeSinceLast < job.cooldown) {
-            const remaining = job.cooldown - timeSinceLast;
-            const hours = Math.floor(remaining / (1000 * 60 * 60));
-            const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+            if (timeSinceLast < job.cooldown) {
+              const remaining = job.cooldown - timeSinceLast;
 
-            return interaction.reply(`⏳ Você está cansado! Aguarde **${hours}h ${minutes}m ${seconds}s** para ${jobType} novamente.`);
-          }
+              const hours = Math.floor(
+                remaining / (1000 * 60 * 60)
+              );
 
-          // 3. Sistema de Falha ou Sucesso
-          const isFailure = Math.random() < job.failChance;
+              const minutes = Math.floor(
+                (remaining % (1000 * 60 * 60)) / (1000 * 60)
+              );
 
-          if (isFailure) {
-            // Caso Falhe: Atualiza o tempo, mas ganha 0 dinheiro e 0 XP
-            const failMsg = job.messages.fail[Math.floor(Math.random() * job.messages.fail.length)];
-            
-            db.run(`UPDATE users SET last_${jobType} = ? WHERE user_id = ?`, [now, id]);
+              return reply(
+                `⏳ Aguarde **${hours}h ${minutes}m** para trabalhar novamente.`
+              );
+            }
 
-            const embed = new EmbedBuilder()
-              .setTitle(`😓 Falha ao ${jobType}...`)
-              .setColor("#FF0000") // Vermelho
-              .setDescription(failMsg)
-              .setFooter({ text: interaction.user.username, iconURL: interaction.user.displayAvatarURL() });
+            // 3. Falha
+            if (Math.random() < job.failChance) {
+              const failMsg =
+                job.messages.fail[
+                  Math.floor(Math.random() * job.messages.fail.length)
+                ];
 
-            return interaction.reply({ embeds: [embed] });
-          } 
-          
-          // Caso Sucesso
-          const moneyEarned = Math.floor(Math.random() * (job.maxMoney - job.minMoney + 1)) + job.minMoney;
-          const xpEarned = job.xp;
-          
-          let successMsg = job.messages.success[Math.floor(Math.random() * job.messages.success.length)];
-          successMsg = successMsg.replace("{money}", moneyEarned); // Troca o texto {money} pelo valor
-
-          // Atualiza Dinheiro, XP e Tempo no banco
-          db.run(
-            `UPDATE users SET money = money + ?, xp = xp + ?, last_${jobType} = ? WHERE user_id = ?`,
-            [moneyEarned, xpEarned, now, id],
-            (err) => {
-              if (err) return interaction.reply("❌ Erro ao salvar progresso.");
+              db.run(
+                `UPDATE users SET last_${jobType} = ? WHERE user_id = ?`,
+                [now, id]
+              );
 
               const embed = new EmbedBuilder()
-                .setTitle(`✅ Sucesso ao ${jobType}!`)
-                .setColor("#00FF00") // Verde
-                .setDescription(successMsg)
-                .addFields({ name: "✨ XP Ganho", value: `+${xpEarned} XP`, inline: true })
-                .setFooter({ text: interaction.user.username, iconURL: interaction.user.displayAvatarURL() });
+                .setTitle("😓 Deu ruim...")
+                .setColor("#FF0000")
+                .setDescription(failMsg);
 
-              interaction.reply({ embeds: [embed] });
+              return reply({ embeds: [embed] });
             }
-          );
-        });
+
+            // 4. Sucesso
+            const moneyEarned =
+              Math.floor(
+                Math.random() * (job.maxMoney - job.minMoney + 1)
+              ) + job.minMoney;
+
+            const xpEarned =
+              Math.floor(
+                Math.random() * (job.maxXp - job.minXp + 1)
+              ) + job.minXp;
+
+            let successMsg =
+              job.messages.success[
+                Math.floor(Math.random() * job.messages.success.length)
+              ];
+
+            successMsg = successMsg.replace(
+              "{money}",
+              moneyEarned
+            );
+
+            db.run(
+              `UPDATE users
+               SET money = money + ?, last_${jobType} = ?
+               WHERE user_id = ?`,
+              [moneyEarned, now, id],
+              async (err) => {
+                if (err) {
+                  return reply("❌ Erro ao salvar dados.");
+                }
+
+                const levelUpMessage =
+                  await levelSystem.addXp(id, xpEarned);
+
+                const embed = new EmbedBuilder()
+                  .setTitle(`✅ Trabalho feito: ${jobType}!`)
+                  .setColor("#00FF00")
+                  .addFields(
+                    {
+                      name: "💰 Dinheiro",
+                      value: `+ R$ ${moneyEarned}`,
+                      inline: true
+                    },
+                    {
+                      name: "✨ XP",
+                      value: `+ ${xpEarned}`,
+                      inline: true
+                    }
+                  )
+                  .setFooter({
+                    text: user.username,
+                    iconURL: user.displayAvatarURL()
+                  });
+
+                if (levelUpMessage) {
+                  embed.setDescription(
+                    successMsg + levelUpMessage
+                  );
+                } else {
+                  embed.setDescription(successMsg);
+                }
+
+                reply({ embeds: [embed] });
+              }
+            );
+          }
+        );
       }
     );
+  },
+
+  async executeMessage(message, args) {
+    return this.execute(message, args);
   }
 };

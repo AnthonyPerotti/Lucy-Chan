@@ -7,70 +7,125 @@ module.exports = {
     .setName("buy")
     .setDescription("Comprar item")
     .addStringOption(opt =>
-      opt.setName("item")
+      opt
+        .setName("item")
         .setDescription("Item da loja")
         .setRequired(true)
     ),
 
-  async execute(interaction) {
-    const id = interaction.user.id;
-    const itemKey = interaction.options.getString("item");
+  async execute(ctx, args = []) {
+    const isSlash = !!ctx.isChatInputCommand;
+
+    const user = isSlash ? ctx.user : ctx.author;
+
+    const reply = (content) => {
+      if (isSlash) {
+        return ctx.reply(content);
+      } else {
+        return ctx.channel.send(content);
+      }
+    };
+
+    const id = user.id;
+
+    // Slash -> /buy item:vassoura
+    // Prefix -> lu!buy vassoura
+    const itemKey = isSlash
+      ? ctx.options.getString("item")
+      : args[0]?.toLowerCase();
+
+    if (!itemKey) {
+      return reply(
+        "❌ Informe um item.\nExemplo: `lu!buy vassoura`"
+      );
+    }
+
     const item = shop[itemKey];
 
-    if (!item) return interaction.reply("❌ Item inválido.");
+    if (!item) {
+      return reply("❌ Item inválido.");
+    }
 
-    // Verificando se o usuário existe
-    db.get("SELECT * FROM users WHERE user_id = ?", [id], (err, user) => {
-      if (err) {
-        console.error("Erro ao acessar o banco de dados:", err);
-        return interaction.reply("❌ Ocorreu um erro ao acessar sua conta.");
-      }
-
-      if (!user) return interaction.reply("❌ Conta não encontrada.");
-
-      // Verificando se o usuário tem dinheiro suficiente
-      if (user.money < item.price) {
-        return interaction.reply("💸 Dinheiro insuficiente.");
-      }
-
-      // Verificando se o item já existe no inventário
-      db.get("SELECT * FROM inventory WHERE user_id = ? AND item = ?", [id, item.name], (err, inventoryItem) => {
+    // Verifica usuário
+    db.get(
+      "SELECT * FROM users WHERE user_id = ?",
+      [id],
+      (err, userData) => {
         if (err) {
-          console.error("Erro ao verificar inventário:", err);
-          return interaction.reply("❌ Ocorreu um erro ao acessar seu inventário.");
+          console.error(err);
+          return reply(
+            "❌ Ocorreu um erro ao acessar sua conta."
+          );
         }
 
-        // Se o item já existe no inventário, não permite a compra
-        if (inventoryItem) {
-          return interaction.reply(`❌ Você já possui ${item.name} no seu inventário.`);
+        if (!userData) {
+          return reply("❌ Conta não encontrada.");
         }
 
-        // Atualizando o saldo do usuário
-        db.run(
-          "UPDATE users SET money = money - ? WHERE user_id = ?",
-          [item.price, id],
-          (err) => {
+        // Dinheiro suficiente
+        if (userData.money < item.price) {
+          return reply("💸 Dinheiro insuficiente.");
+        }
+
+        // Já possui item?
+        db.get(
+          "SELECT * FROM inventory WHERE user_id = ? AND item = ?",
+          [id, item.name],
+          (err, inventoryItem) => {
             if (err) {
-              console.error("Erro ao atualizar o dinheiro do usuário:", err);
-              return interaction.reply("❌ Não foi possível atualizar seu saldo.");
+              console.error(err);
+
+              return reply(
+                "❌ Ocorreu um erro ao acessar seu inventário."
+              );
             }
 
-            // Inserindo o item no inventário do usuário
+            if (inventoryItem) {
+              return reply(
+                `❌ Você já possui ${item.name} no seu inventário.`
+              );
+            }
+
+            // Remove dinheiro
             db.run(
-              "INSERT INTO inventory (user_id, item, amount) VALUES (?, ?, 1)",
-              [id, item.name],
+              "UPDATE users SET money = money - ? WHERE user_id = ?",
+              [item.price, id],
               (err) => {
                 if (err) {
-                  console.error("Erro ao adicionar item ao inventário:", err);
-                  return interaction.reply("❌ Não foi possível adicionar o item ao inventário.");
+                  console.error(err);
+
+                  return reply(
+                    "❌ Não foi possível atualizar seu saldo."
+                  );
                 }
 
-                interaction.reply(`✅ Você comprou ${item.name} por R$ ${item.price}.`);
+                // Adiciona item
+                db.run(
+                  "INSERT INTO inventory (user_id, item, amount) VALUES (?, ?, 1)",
+                  [id, item.name],
+                  (err) => {
+                    if (err) {
+                      console.error(err);
+
+                      return reply(
+                        "❌ Não foi possível adicionar o item ao inventário."
+                      );
+                    }
+
+                    reply(
+                      `✅ Você comprou ${item.name} por R$ ${item.price}.`
+                    );
+                  }
+                );
               }
             );
           }
         );
-      });
-    });
+      }
+    );
+  },
+
+  async executeMessage(message, args) {
+    return this.execute(message, args);
   }
 };

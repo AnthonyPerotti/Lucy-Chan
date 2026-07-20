@@ -2,9 +2,8 @@ const {
   SlashCommandBuilder, 
   EmbedBuilder, 
   ActionRowBuilder, 
-  StringSelectMenuBuilder, 
-  StringSelectMenuOptionBuilder, 
-  ComponentType 
+  StringSelectMenuBuilder,
+  ComponentType
 } = require("discord.js");
 
 module.exports = {
@@ -13,8 +12,16 @@ module.exports = {
     .setDescription("Painel de ajuda e comandos"),
 
   async execute(interaction) {
+    return this.run(interaction);
+  },
+
+  async executeMessage(message) {
+    return this.run(message);
+  },
+
+  async run(ctx) {
     // 1. Criar o Embed Principal (Igual ao da foto "Information Panel")
-    const mainEmbed = new EmbedBuilder()
+    const embed = new EmbedBuilder()
       .setTitle("📘 Painel de Informações")
       .setDescription(
         "Olá! Aqui você encontra todos os meus comandos. Escolha uma categoria no menu abaixo para ver os detalhes! 👇\n\n" +
@@ -24,126 +31,194 @@ module.exports = {
         "🏆 **Social & Ranks**"
       )
       .setColor("#2B2D31") // Cor escura padrão do Discord (Dark Theme)
-      .setThumbnail(interaction.client.user.displayAvatarURL());
+      .setThumbnail(ctx.client.user.displayAvatarURL());
 
     // 2. Criar o Menu de Seleção (Dropdown)
-    const selectMenu = new StringSelectMenuBuilder()
-      .setCustomId("help_menu")
-      .setPlaceholder("Selecione uma categoria...")
-      .addOptions(
-        new StringSelectMenuOptionBuilder()
-          .setLabel("Início")
-          .setDescription("Voltar para o painel principal")
-          .setValue("home")
-          .setEmoji("🏠"),
-        new StringSelectMenuOptionBuilder()
-          .setLabel("Economia")
-          .setDescription("Comandos de dinheiro e diário")
-          .setValue("economy")
-          .setEmoji("💸"),
-        new StringSelectMenuOptionBuilder()
-          .setLabel("Trabalhos")
-          .setDescription("Lista de trabalhos para ganhar dinheiro")
-          .setValue("jobs")
-          .setEmoji("⚒️"),
-        new StringSelectMenuOptionBuilder()
-          .setLabel("Loja & Itens")
-          .setDescription("Comprar itens e ver inventário")
-          .setValue("shop")
-          .setEmoji("🛒"),
-        new StringSelectMenuOptionBuilder()
-          .setLabel("Social & Ranks")
-          .setDescription("Perfil, reputação e rankings")
-          .setValue("social")
-          .setEmoji("🏆")
-      );
+    const menu =
+      new StringSelectMenuBuilder()
+        .setCustomId("help-menu")
+        .setPlaceholder(
+          "Selecione uma categoria..."
+        )
+        .addOptions([
+          {
+            label: "Economia",
+            description: "Comandos de dinheiro",
+            value: "economia",
+            emoji: "💸"
+          },
+          {
+            label: "Trabalhos",
+            description: "Comandos de trabalho",
+            value: "trabalhos",
+            emoji: "⛏️"
+          },
+          {
+            label: "Loja & Itens",
+            description: "Comandos da loja",
+            value: "loja",
+            emoji: "🛒"
+          },
+          {
+            label: "Social & Ranks",
+            description: "Comandos sociais",
+            value: "social",
+            emoji: "🏆"
+          }
+        ]);
 
-    const row = new ActionRowBuilder().addComponents(selectMenu);
+    const row = new ActionRowBuilder().addComponents(menu);
 
     // Envia a mensagem inicial
-    const response = await interaction.reply({
-      embeds: [mainEmbed],
+    const msg = await ctx.reply({
+      embeds: [embed],
       components: [row],
+      fetchReply: true
     });
 
     // 3. Criar o Coletor (Para ouvir os cliques no menu)
-    const collector = response.createMessageComponentCollector({
+    const collector = msg.createMessageComponentCollector({
       componentType: ComponentType.StringSelect,
-      time: 600000 // O menu funciona por 10 minutos
+      time: 300000 // O menu funciona por 10 minutos
     });
 
     collector.on("collect", async (i) => {
-      // Garante que só quem digitou o comando pode mexer no menu
-      if (i.user.id !== interaction.user.id) {
-        return i.reply({ content: "❌ Esse menu não é para você!", ephemeral: true });
+
+      const authorId =
+        ctx.user?.id || ctx.author?.id;
+
+      if (i.user.id !== authorId) {
+        return i.reply({
+          content: "❌ Esse menu não é para você!",
+          ephemeral: true
+        });
       }
 
-      const value = i.values[0]; // O que a pessoa selecionou
-      let newEmbed;
+      if (i.customId !== "help-menu") return;
 
-      // 4. Lógica de Troca de Páginas
-      if (value === "economy") {
-        newEmbed = new EmbedBuilder()
-          .setTitle("💸 Comandos de Economia")
-          .setColor("#00FF00")
-          .addFields(
-            { name: "`/balance`", value: "Vê quanto dinheiro você tem no bolso e no banco.", inline: false },
-            { name: "`/daily`", value: "Pega sua recompensa diária (a cada 24h).", inline: false }
-          );
-      } 
-      
-      else if (value === "jobs") {
-        newEmbed = new EmbedBuilder()
-          .setTitle("⚒️ Comandos de Trabalho")
-          .setColor("#FF8C00") // Laranja
-          .setDescription("Use estes comandos se você tiver a ferramenta necessária!")
-          .addFields(
-            { name: "🔹 Básicos", value: "`/varrer` (Vassoura)\n`/limpar` (Esponja)", inline: true },
-            { name: "🔹 Pescador", value: "`/pescar` (Vara)\n`/arrastar` (Rede)", inline: true },
-            { name: "🔹 Trabalhador I", value: "`/cavar` (Pá)\n`/cozinhar` (Faca)\n`/arar` (Enxada)", inline: true },
-            { name: "🔹 Trabalhador II", value: "`/cortar` (Machado)\n`/minerar` (Picareta)\n`/construir` (Martelo)", inline: true },
-            { name: "🔹 Crime", value: "`/roubar` (Pistola)\n`/hackear` (Computador)", inline: true }
-          );
-      } 
-      
-      else if (value === "shop") {
-        newEmbed = new EmbedBuilder()
-          .setTitle("🛒 Loja e Inventário")
-          .setColor("#FFFF00") // Amarelo
-          .addFields(
-            { name: "`/shop`", value: "Abre a loja para ver preços e kits.", inline: false },
-            { name: "`/buy [item]`", value: "Compra uma ferramenta. Ex: `/buy item:vassoura`.", inline: false },
-            { name: "`/inventory`", value: "Mostra quais ferramentas você já comprou.", inline: false }
-          );
-      } 
-      
-      else if (value === "social") {
-        newEmbed = new EmbedBuilder()
-          .setTitle("🏆 Social e Rankings")
-          .setColor("#5865F2") // Azul Discord
-          .addFields(
-            { name: "`/profile`", value: "Mostra seu cartão de perfil com Nível e XP.", inline: false },
-            { name: "`/rep [user]`", value: "Dá um ponto de reputação para um amigo.", inline: false },
-            { name: "`/reptop`", value: "Mostra o ranking de quem tem mais reputação.", inline: false },
-            { name: "`/moneytop`", value: "Mostra o ranking dos mais ricos do servidor.", inline: false }
-          );
-      } 
-      
-      else {
-        // Se escolheu "Início" ou qualquer outra coisa, volta para o principal
-        newEmbed = mainEmbed;
+      let responseEmbed;
+
+      switch (i.values[0]) {
+
+        case "economia":
+
+          responseEmbed =
+            new EmbedBuilder()
+              .setTitle("💸 Economia")
+              .setColor("#00FF00")
+              .setDescription(
+                "💰 `lu!balance`\n" +
+                "Mostra quanto dinheiro você possui na carteira e no banco.\n\n" +
+
+                "🎁 `lu!daily`\n" +
+                "Coleta sua recompensa diária gratuita.\n\n" +
+
+                "🏦 `lu!deposit <valor>`\n" +
+                "Guarda dinheiro no banco para evitar perdas.\n\n" +
+
+                "🏧 `lu!withdraw <valor>`\n" +
+                "Retira dinheiro do banco para sua carteira.\n\n" +
+
+                "💸 `lu!pay <usuário> <valor>`\n" +
+                "Transfere dinheiro para outro jogador.\n\n" +
+
+                "🏆 `lu!moneytop`\n" +
+                "Mostra os jogadores mais ricos do servidor.\n\n" +
+
+                "🎰 `lu!slots <valor>`\n" +
+                "Aposte no caça-níquel da Lucy-chan."
+              );
+
+          break;
+
+        case "trabalhos":
+
+          responseEmbed =
+            new EmbedBuilder()
+              .setTitle("⛏️ Trabalhos")
+              .setColor("#ffaa00")
+              .setDescription(
+                "🧹 `lu!varrer`\n" +
+                "Trabalho simples usando uma vassoura.\n\n" +
+
+                "🎣 `lu!pescar`\n" +
+                "Pesque peixes para ganhar dinheiro.\n\n" +
+
+                "⛏️ `lu!minerar`\n" +
+                "Mine recursos valiosos usando picareta.\n\n" +
+
+                "💻 `lu!hackear`\n" +
+                "Tente invadir sistemas para ganhar dinheiro.\n\n" +
+
+                "🪓 `lu!cortar`\n" +
+                "Corte árvores usando um machado.\n\n" +
+
+                "🔫 `lu!assaltar`\n" +
+                "Roube outros jogadores, mas cuidado com a polícia.\n\n" +
+
+                "⚠️ Todos os trabalhos precisam da ferramenta correta."
+              );
+
+          break;
+
+        case "loja":
+
+          responseEmbed =
+            new EmbedBuilder()
+              .setTitle("🛒 Loja & Itens")
+              .setColor("#5865F2")
+              .setDescription(
+                "🛒 `lu!shop`\n" +
+                "Abre a loja de ferramentas.\n\n" +
+
+                "💳 `lu!buy <item>`\n" +
+                "Compra ferramentas para desbloquear trabalhos.\n\n" +
+
+                "🎒 `lu!inventory`\n" +
+                "Mostra todos os itens que você possui."
+              );
+          break;
+
+        case "social":
+
+          responseEmbed =
+            new EmbedBuilder()
+              .setTitle("🏆 Social & Ranks")
+              .setColor("#ff00aa")
+              .setDescription(
+                "👤 `lu!profile`\n" +
+                "Mostra seu perfil, nível, XP e reputação.\n\n" +
+
+                "✨ `lu!rep <usuário>`\n" +
+                "Dá reputação para outro jogador.\n\n" +
+
+                "🏆 `lu!reptop`\n" +
+                "Ranking dos jogadores com mais reputação.\n\n" +
+
+                "💰 `lu!moneytop`\n" +
+                "Ranking econômico do servidor."
+              );
+
+          break;
       }
 
-      // Atualiza a mensagem
-      await i.update({ embeds: [newEmbed], components: [row] });
+      await i.update({
+        embeds: [responseEmbed],
+        components: [row]
+      });
     });
 
-    // Quando o tempo acabar, desativa o menu
-    collector.on("end", () => {
-      const disabledRow = new ActionRowBuilder().addComponents(
-        selectMenu.setDisabled(true).setPlaceholder("Menu expirado")
-      );
-      interaction.editReply({ components: [disabledRow] }).catch(() => {});
+    collector.on("end", async () => {
+
+      const disabledRow =
+        new ActionRowBuilder()
+          .addComponents(
+            menu.setDisabled(true)
+          );
+
+      await msg.edit({
+        components: [disabledRow]
+      }).catch(() => {});
     });
   }
 };

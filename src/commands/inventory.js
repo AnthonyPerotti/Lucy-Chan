@@ -6,37 +6,65 @@ module.exports = {
     .setName("inventory")
     .setDescription("Ver seu inventário"),
 
-  async execute(interaction) {
-    const id = interaction.user.id;
+  async execute(ctx, args = []) {
+    const isSlash = !!ctx.isChatInputCommand;
+
+    const user = isSlash ? ctx.user : ctx.author;
+
+    const reply = (content) => {
+      if (isSlash) {
+        return ctx.reply(content);
+      } else {
+        return ctx.channel.send(content);
+      }
+    };
+
+    const id = user.id;
 
     db.all(
       "SELECT * FROM inventory WHERE user_id = ?",
       [id],
       (err, items) => {
         if (err) {
-          console.error("Erro ao acessar o inventário:", err);
-          return interaction.reply("❌ Ocorreu um erro ao acessar seu inventário.");
+          console.error(
+            "Erro ao acessar inventário:",
+            err
+          );
+
+          return reply(
+            "❌ Ocorreu um erro ao acessar seu inventário."
+          );
         }
 
         if (!items || items.length === 0) {
-          return interaction.reply("📦 Seu inventário está vazio.");
+          return reply(
+            "📦 Seu inventário está vazio."
+          );
         }
 
-        // Criando o Embed usando EmbedBuilder
         const embed = new EmbedBuilder()
-          .setTitle("📦 **Seu Inventário**")
-          .setColor("#00FF00");  // Cor verde, pode ser alterada conforme necessário
+          .setTitle("📦 Seu Inventário")
+          .setColor("#00FF00")
+          .setFooter({
+            text: user.username,
+            iconURL: user.displayAvatarURL()
+          })
+          .setTimestamp();
 
-        // Adicionando os itens ao Embed (sem a quantidade)
-        items.forEach(item => {
-          embed.addFields(
-            { name: item.item, value: "✔️", inline: false }
-          );
+        items.forEach((item) => {
+          embed.addFields({
+            name: item.item,
+            value: "✔️",
+            inline: false
+          });
         });
 
-        // Enviar o Embed para o usuário
-        interaction.reply({ embeds: [embed] });
+        reply({ embeds: [embed] });
       }
     );
+  },
+
+  async executeMessage(message, args) {
+    return this.execute(message, args);
   }
 };

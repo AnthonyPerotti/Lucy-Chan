@@ -3,7 +3,9 @@ module.exports = {
   varrer: {
     itemName: "🧹 Vassoura",
     cooldown: 15 * 60 * 1000, // 15 min
-    minMoney: 50, maxMoney: 100, xp: 20, failChance: 0.05,
+    minMoney: 50, maxMoney: 100,
+    minXp: 15, maxXp: 25, // Média 20
+    failChance: 0.05,
     messages: {
       success: [
         "Você varreu a calçada do bairro e recebeu **R$ {money}**!",
@@ -24,7 +26,9 @@ module.exports = {
   limpar: {
     itemName: "🧽 Esponja",
     cooldown: 20 * 60 * 1000, // 20 min
-    minMoney: 120, maxMoney: 200, xp: 35, failChance: 0.1,
+    minMoney: 120, maxMoney: 200,
+    minXp: 30, maxXp: 40, // Média 35
+    failChance: 0.1,
     messages: {
       success: [
         "Você lavou um carro esportivo e o dono te deu **R$ {money}** de gorjeta!",
@@ -47,7 +51,9 @@ module.exports = {
   pescar: {
     itemName: "🎣 Vara de Pesca",
     cooldown: 60 * 60 * 1000, // 1h
-    minMoney: 500, maxMoney: 900, xp: 100, failChance: 0.15,
+    minMoney: 500, maxMoney: 900,
+    minXp: 80, maxXp: 120, // Média 100
+    failChance: 0.15,
     messages: {
       success: [
         "Você pescou um atum gigante e o mercado pagou **R$ {money}**!",
@@ -68,7 +74,9 @@ module.exports = {
   arrastar: {
     itemName: "🕸️ Rede",
     cooldown: 2 * 60 * 60 * 1000, // 2h
-    minMoney: 1200, maxMoney: 1800, xp: 200, failChance: 0.2,
+    minMoney: 1200, maxMoney: 1800,
+    minXp: 180, maxXp: 220, // Média 200
+    failChance: 0.2,
     messages: {
       success: [
         "Você lançou a rede e pegou um cardume inteiro! Lucro de **R$ {money}**!",
@@ -91,7 +99,9 @@ module.exports = {
   cavar: {
     itemName: "⛏️ Pá",
     cooldown: 3 * 60 * 60 * 1000, // 3h
-    minMoney: 2000, maxMoney: 2800, xp: 300, failChance: 0.2,
+    minMoney: 2000, maxMoney: 2800,
+    minXp: 250, maxXp: 350, // Média 300
+    failChance: 0.2,
     messages: {
       success: [
         "Você cavou um poço artesiano e recebeu **R$ {money}**!",
@@ -109,10 +119,12 @@ module.exports = {
       ]
     }
   },
-  cozinhar: { // ALTERADO DE CAÇAR PARA COZINHAR
+  cozinhar: {
     itemName: "🔪 Faca",
     cooldown: 4 * 60 * 60 * 1000, // 4h
-    minMoney: 3000, maxMoney: 4500, xp: 400, failChance: 0.25,
+    minMoney: 3000, maxMoney: 4500,
+    minXp: 350, maxXp: 450, // Média 400
+    failChance: 0.25,
     messages: {
       success: [
         "Você trabalhou como Sushi-man por uma noite e ganhou **R$ {money}**!",
@@ -133,7 +145,9 @@ module.exports = {
   arar: {
     itemName: "🚜 Enxada",
     cooldown: 4 * 60 * 60 * 1000, // 4h
-    minMoney: 5000, maxMoney: 7500, xp: 500, failChance: 0.25,
+    minMoney: 5000, maxMoney: 7500,
+    minXp: 450, maxXp: 550, // Média 500
+    failChance: 0.25,
     messages: {
       success: [
         "Você carpiu um lote inteiro sob o sol e ganhou **R$ {money}**!",
@@ -154,7 +168,9 @@ module.exports = {
   cortar: {
     itemName: "🪓 Machado",
     cooldown: 5 * 60 * 60 * 1000, // 5h
-    minMoney: 8000, maxMoney: 12000, xp: 800, failChance: 0.3,
+    minMoney: 8000, maxMoney: 12000,
+    minXp: 700, maxXp: 900, // Média 800
+    failChance: 0.3,
     messages: {
       success: [
         "Você cortou árvores de reflorestamento e vendeu por **R$ {money}**!",
@@ -175,7 +191,9 @@ module.exports = {
   minerar: {
     itemName: "⛏️ Picareta",
     cooldown: 6 * 60 * 60 * 1000, // 6h
-    minMoney: 15000, maxMoney: 22000, xp: 1200, failChance: 0.35,
+    minMoney: 15000, maxMoney: 22000,
+    minXp: 1000, maxXp: 1400, // Média 1200
+    failChance: 0.35,
     messages: {
       success: [
         "Você encontrou um veio de ouro puro! Vendeu por **R$ {money}**!",
@@ -196,7 +214,9 @@ module.exports = {
   construir: {
     itemName: "🔨 Martelo",
     cooldown: 8 * 60 * 60 * 1000, // 8h
-    minMoney: 25000, maxMoney: 35000, xp: 2000, failChance: 0.35,
+    minMoney: 25000, maxMoney: 35000,
+    minXp: 1800, maxXp: 2200, // Média 2000
+    failChance: 0.35,
     messages: {
       success: [
         "Você construiu um anexo na casa do vizinho e ganhou **R$ {money}**!",
@@ -219,7 +239,9 @@ module.exports = {
   roubar: {
     itemName: "🔫 Pistola",
     cooldown: 12 * 60 * 60 * 1000, // 12h
-    minMoney: 40000, maxMoney: 60000, xp: 3000, failChance: 0.50,
+    minMoney: 40000, maxMoney: 60000,
+    minXp: 2500, maxXp: 3500, // Média 3000
+    failChance: 0.50,
     messages: {
       success: [
         "Você assaltou um carro forte e levou **R$ {money}**!",
@@ -240,7 +262,9 @@ module.exports = {
   hackear: {
     itemName: "💻 Computador",
     cooldown: 24 * 60 * 60 * 1000, // 24h
-    minMoney: 80000, maxMoney: 150000, xp: 5000, failChance: 0.45,
+    minMoney: 80000, maxMoney: 150000,
+    minXp: 4000, maxXp: 6000, // Média 5000
+    failChance: 0.45,
     messages: {
       success: [
         "Você invadiu contas bancárias nas Ilhas Cayman: **R$ {money}**!",
