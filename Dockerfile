@@ -7,4 +7,6 @@ RUN npm install
 
 COPY . .
 
-CMD ["node", "src/index.js"]
+HEALTHCHECK --interval=30s --timeout=5s CMD pgrep node || exit 1
+
+CMD ["npm", "start"]
