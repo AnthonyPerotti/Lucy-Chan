@@ -4,12 +4,6 @@ services:
     image: lucy-chan:latest
     container_name: lucy-chan
     restart: unless-stopped
-    
-    env_file:
-      - ../.env
      
     environment:
       TZ: America/Sao_Paulo
-      
-    volumes:
-      - ../discord-bot-data:/app/data
