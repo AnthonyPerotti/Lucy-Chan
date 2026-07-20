@@ -1,9 +1,22 @@
 services:
   discord-bot:
     build: .
+
     image: lucy-chan:latest
+
     container_name: lucy-chan
+
     restart: unless-stopped
-     
+
     environment:
       TZ: America/Sao_Paulo
+
+      TOKEN: ${TOKEN}
+      CLIENT_ID: ${CLIENT_ID}
+      GUILD_ID: ${GUILD_ID}
+
+    volumes:
+      - discord-data:/app/data
+
+volumes:
+  discord-data:
